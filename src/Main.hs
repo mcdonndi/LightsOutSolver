@@ -13,3 +13,9 @@ dotProduct ::  Vector -> Vector -> Int
 dotProduct [] _ = 0
 dotProduct _ [] = 0
 dotProduct (x:xs) (y:ys) = x*y + dotProduct xs ys
+
+reduceVectorTo23 :: Vector -> Vector
+reduceVectorTo23 v = take 23 v
+
+countMoves :: Vector -> Int
+countMoves v = sum v
