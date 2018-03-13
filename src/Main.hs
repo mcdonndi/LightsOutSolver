@@ -1,6 +1,7 @@
 --module Main where
 
 import Data.List
+import Data.Function
 
 type Vector = [Int]
 type Row = [Int]
@@ -52,7 +53,7 @@ reducedAInverse =   [[0,1,1,1,0,0,0,1,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0],
 solve :: Vector -> Maybe Vector
 solve v = if solvable v == False
     then Nothing
-    else Just (multiplyByVector reducedAInverse (reduceVectorTo23 v))
+    else Just (getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector reducedAInverse (reduceVectorTo23 v))
 
 solvable :: Vector -> Bool
 solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
@@ -64,8 +65,21 @@ dotProduct [] _ = 0
 dotProduct _ [] = 0
 dotProduct (x:xs) (y:ys) = (x*y) `xor` (dotProduct xs ys)
 
+createSolutionsList :: Vector -> [Vector]
+createSolutionsList v = [v, (v `applyQuietPattern` quietPattern1), (v `applyQuietPattern` quietPattern2), (v `applyQuietPattern` quietPattern3)]
+
+solutionsAndMoveCount :: [Vector] -> [(Vector, Int)]
+solutionsAndMoveCount [] = []
+solutionsAndMoveCount (v:vs) = (v, countMoves v) : solutionsAndMoveCount vs
+
+getLeastMovesSolution :: [(Vector, Int)] -> Vector
+getLeastMovesSolution list =  fst $ head $ sortBy (compare `on` snd) list
+
 reduceVectorTo23 :: Vector -> Vector
 reduceVectorTo23 v = take 23 v
+
+appendTwoZeroes :: Vector -> Vector
+appendTwoZeroes v = v ++ [0,0]
 
 countMoves :: Vector -> Int
 countMoves v = sum v
