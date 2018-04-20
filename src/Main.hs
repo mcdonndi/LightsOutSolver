@@ -168,13 +168,12 @@ multiplyByVector (m:ms) v = (dotProduct m v) : (multiplyByVector ms v)
 gaussJordan :: (Matrix, Matrix) -> Int -> (Matrix, Matrix)
 gaussJordan ([], _) _ = ([], [])
 gaussJordan (_, []) _ = ([], [])
-gaussJordan (m1, m2) n = (m1Step3, m2Step3)--(rotateMatrix $ addZeroesToMatrix m1Step3 n, rotateMatrix $ addZeroesToMatrix m2Step3 n)
+gaussJordan (m1, m2) n = (m1Step3, m2Step3)
     where   (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step2)
             m1Step2 = addZeroesToMatrix m1Step1 n
             m2Step2 = addZeroesToMatrix m2Step1 n
             (m1Step1, m2Step1) = rowEchelon (m1, m2)
 
--- Has issues
 rowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
 rowEchelon ([], _) = ([], [])
 rowEchelon (_, []) = ([], [])
@@ -201,58 +200,48 @@ getRowAfterLastLeadingOne (_, []) = ([], [])
 getRowAfterLastLeadingOne (m1, m2) = if head (last m1) == 1 then ([], []) else (initM1 ++ [last m1], initM2 ++ [last m2])
     where (initM1, initM2) = getRowAfterLastLeadingOne (init m1, init m2)
 
---Tested and Works
 getRowUpToLastLeadingOne :: (Matrix, Matrix) -> (Matrix, Matrix)
 getRowUpToLastLeadingOne ([], _) = ([], [])
 getRowUpToLastLeadingOne (_, []) = ([], [])
 getRowUpToLastLeadingOne (m1, m2) = if head (last m1) == 1 then (m1, m2) else getRowUpToLastLeadingOne (init m1, init m2)
 
---Tested and works
 getFirstColumn :: Matrix -> Matrix
 getFirstColumn [] = []
 getFirstColumn (m:ms) = [[head m]] ++ getFirstColumn ms
 
---Tested and Works
 addColumnToLeftOfMatrix :: Matrix -> Matrix -> Matrix
 addColumnToLeftOfMatrix col [] = col
 addColumnToLeftOfMatrix [] (m:ms) = [[0] ++ m] ++ addColumnToLeftOfMatrix [] ms
 addColumnToLeftOfMatrix (col:cols) (m:ms) = [col ++ m] ++ addColumnToLeftOfMatrix cols ms
 
--- Tested and Works
 addZeroesToMatrix :: Matrix -> Int -> Matrix
 addZeroesToMatrix [] _ = []
 addZeroesToMatrix (m:ms) n = [addZeroesToVector m (n - (length m))] ++ addZeroesToMatrix ms n
 
--- Tested and Works
 addZeroesToVector :: Vector -> Int -> Vector
 addZeroesToVector v n = replicate n 0 ++ v
 
--- Tested and works
 checkForAllLeadingZeroes :: Matrix -> Bool
 checkForAllLeadingZeroes [] = True
 checkForAllLeadingZeroes (m:ms) = hasLeadingZero && checkForAllLeadingZeroes ms
     where hasLeadingZero = if head m == 0 then True else False
 
--- Tested and works
 rowStartWithOne :: (Matrix, Matrix) -> (Matrix, Matrix)
 rowStartWithOne ([], _) = ([], [])
 rowStartWithOne (_, []) = ([], [])
 rowStartWithOne (m:ms, n:ns) = if x == 1 then (m:ms, n:ns) else if checkForAllLeadingZeroes (m:ms) == True then (m:ms, n:ns) else rowStartWithOne (ms ++ [m], ns ++ [n])
     where x = head m
 
--- Tested and works
 xorWithFirstRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithFirstRow ([], _) = ([], [])
 xorWithFirstRow (_, []) = ([], [])
 xorWithFirstRow (m:ms, n:ns) = ([m] ++ map (xorWithVectorsWithHeadOne m) ms, [n] ++ map (xorWithVectorsWithHeadOne n) ns)
 
--- Tested and works
 xorWithLastRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithLastRow ([], _) = ([], [])
 xorWithLastRow (_, []) = ([], [])
 xorWithLastRow (m1, m2) = ((map (xorWithVectorsWithHeadOne $ last m1) (init m1)) ++ [last m1], (map (xorWithVectorsWithHeadOne $ last m2) (init m2)) ++ [last m2])
 
--- Tested and works
 removeFirstColumn :: (Matrix, Matrix) -> (Matrix, Matrix)
 removeFirstColumn ([], _) = ([], [])
 removeFirstColumn (_, []) = ([], [])
