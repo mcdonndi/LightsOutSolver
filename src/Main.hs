@@ -169,30 +169,29 @@ gaussJordan :: (Matrix, Matrix) -> Int -> (Matrix, Matrix)
 gaussJordan ([], _) _ = ([], [])
 gaussJordan (_, []) _ = ([], [])
 gaussJordan (m1, m2) n = (m1Step3, m2Step3)
-    where   (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step2)
+    where   (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step1)
             m1Step2 = addZeroesToMatrix m1Step1 n
-            m2Step2 = addZeroesToMatrix m2Step1 n
             (m1Step1, m2Step1) = rowEchelon (m1, m2)
 
 rowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
 rowEchelon ([], _) = ([], [])
 rowEchelon (_, []) = ([], [])
 rowEchelon (m1, m2) = ([head newM1] ++ newM1Tail, [head newM2] ++ newM2Tail)
-    where   (newM1, newM2) = xorWithFirstRow $ (rowStartWithOne (m1, m2))
+    where   (newM1Tail, newM2Tail) = rowEchelon (removeFirstColumn $ tail newM1, tail newM2)
+            (newM1, newM2) = xorWithFirstRow (rowStartWithOne (m1, m2))
 
 reducedRowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
 reducedRowEchelon ([], _) = ([], [])
 reducedRowEchelon (_, []) = ([], [])
-reducedRowEchelon (m1, m2) = if numAllZeroRowsEqualsNumColumns m1 == True then (m1, m2) else (addColumnToLeftOfMatrix m1Column1 m1Part3, addColumnToLeftOfMatrix m2Column1 m2Part3)
-    where   (m1Part3, m2Part3) = reducedRowEchelon (m1LessColumn1, m2LessColumn2)
+reducedRowEchelon (m1, m2) = if numAllZeroRowsEqualsNumColumns m1 == True || matrixIsEmpty m1 then (m1, m2) else (addColumnToLeftOfMatrix m1Column1 m1Part3, m2Part3)
+    where   (m1Part3, m2Part3) = reducedRowEchelon (m1LessColumn1, m2Rejoin) -- pass all of m2 (DONE)
             m1Column1 = getFirstColumn m1Part2
-            m2Column1 = getFirstColumn m2Part2
-            (m1LessColumn1, m2LessColumn2) = removeFirstColumn (m1Rejoin, m2Rejoin)
-            m1Rejoin = m1Part2 ++ m1Part1Bottom
-            m2Rejoin = m2Part2 ++ m2Part1Bottom
+            m1LessColumn1 = removeFirstColumn m1Rejoin -- remove only from m1 (DONE)
+            m1Rejoin = m1Part2 ++ m1Part1Bottom -- fine
+            m2Rejoin = m2Part2 ++ m2Part1Bottom -- fine
             (m1Part2, m2Part2) = xorWithLastRow (m1Part1Top, m2Part1Top)
-            (m1Part1Top, m2Part1Top) = getRowUpToLastLeadingOne (m1, m2)
-            (m1Part1Bottom, m2Part1Bottom) = getRowAfterLastLeadingOne (m1, m2)
+            (m1Part1Top, m2Part1Top) = getRowUpToLastLeadingOne (m1, m2) -- Returns based on m1 so fine
+            (m1Part1Bottom, m2Part1Bottom) = getRowAfterLastLeadingOne (m1, m2) -- Returns based on m1 so fine
 
 getRowAfterLastLeadingOne :: (Matrix, Matrix) -> (Matrix, Matrix)
 getRowAfterLastLeadingOne ([], _) = ([], [])
@@ -229,26 +228,33 @@ checkForAllLeadingZeroes (m:ms) = hasLeadingZero && checkForAllLeadingZeroes ms
 rowStartWithOne :: (Matrix, Matrix) -> (Matrix, Matrix)
 rowStartWithOne ([], _) = ([], [])
 rowStartWithOne (_, []) = ([], [])
-rowStartWithOne (m:ms, n:ns) = if x == 1 then (m:ms, n:ns) else if checkForAllLeadingZeroes (m:ms) == True then (m:ms, n:ns) else rowStartWithOne (ms ++ [m], ns ++ [n])
-    where x = head m
+rowStartWithOne (m:ms, n:ns) = if head m == 1 then (m:ms, n:ns) else if checkForAllLeadingZeroes (m:ms) == True then (m:ms, n:ns) else rowStartWithOne (ms ++ [m], ns ++ [n])
 
 xorWithFirstRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithFirstRow ([], _) = ([], [])
 xorWithFirstRow (_, []) = ([], [])
-xorWithFirstRow (m:ms, n:ns) = ([m] ++ map (xorWithVectorsWithHeadOne m) ms, [n] ++ map (xorWithVectorsWithHeadOne n) ns)
+xorWithFirstRow (m:ms, n:ns) = ([m] ++ newMs, [n] ++ newNs)
+    where (newMs, newNs) = xorMatrixRowsWithVectorsWithHeadOne (m, n) (ms, ns) -- map woks on lists not tuples
 
 xorWithLastRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithLastRow ([], _) = ([], [])
 xorWithLastRow (_, []) = ([], [])
-xorWithLastRow (m1, m2) = ((map (xorWithVectorsWithHeadOne $ last m1) (init m1)) ++ [last m1], (map (xorWithVectorsWithHeadOne $ last m2) (init m2)) ++ [last m2])
+xorWithLastRow (m1, m2) = (newM1 ++ [last m1], newM2 ++ [last m2])
+    where (newM1, newM2) = xorMatrixRowsWithVectorsWithHeadOne (last m1, last m2) (init m1, init m2) -- map woks on lists not tuples
 
-removeFirstColumn :: (Matrix, Matrix) -> (Matrix, Matrix)
-removeFirstColumn ([], _) = ([], [])
-removeFirstColumn (_, []) = ([], [])
-removeFirstColumn (m, n) = (map tail m, map tail n)
+removeFirstColumn :: Matrix-> Matrix
+removeFirstColumn [] = []
+removeFirstColumn m = map tail m
 
-xorWithVectorsWithHeadOne :: Vector -> Vector -> Vector
-xorWithVectorsWithHeadOne v1 v2 = if head v2 == 1 then xorVectors v1 v2 else v2
+xorMatrixRowsWithVectorsWithHeadOne :: (Vector, Vector) -> (Matrix, Matrix) -> (Matrix, Matrix)
+xorMatrixRowsWithVectorsWithHeadOne _ (_, []) = ([], [])
+xorMatrixRowsWithVectorsWithHeadOne _ ([], _) = ([], [])
+xorMatrixRowsWithVectorsWithHeadOne (v1, v2) (m1, m2) = ([m1Head] ++ m1Tail, [m2Head] ++ m2Tail)
+    where   (m1Head, m2Head) = xorWithVectorsWithHeadOne (v1, v2) (head m1, head m2)
+            (m1Tail, m2Tail) = xorMatrixRowsWithVectorsWithHeadOne (v1, v2) (tail m1, tail m2)
+
+xorWithVectorsWithHeadOne :: (Vector, Vector)-> (Vector, Vector) -> (Vector, Vector)
+xorWithVectorsWithHeadOne (v1, v2) (v3, v4) = if head v3 == 1 then (xorVectors v1 v3, xorVectors v2 v4) else (v3, v4)
 
 xorVectors :: Vector -> Vector -> Vector
 xorVectors v1 v2 = zipWith xor v1 v2
@@ -258,6 +264,13 @@ xor 0 0 = 0
 xor 0 1 = 1
 xor 1 0 = 1
 xor 1 1 = 0
+
+vectorIsEmpty :: Vector -> Bool
+vectorIsEmpty v = if v == [] then True else False
+
+matrixIsEmpty :: Matrix -> Bool
+matrixIsEmpty [] = True
+matrixIsEmpty (m:ms) = vectorIsEmpty m && matrixIsEmpty ms
 
 numAllZeroRowsEqualsNumColumns :: Matrix -> Bool
 numAllZeroRowsEqualsNumColumns m = if countZeroVectorsAtBottom m == length (head m) then True else False
