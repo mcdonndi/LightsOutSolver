@@ -161,15 +161,17 @@ flipVector :: Vector -> Vector
 flipVector v = reverse v
 
 multiplyByVector :: Matrix -> Vector -> Vector
-multiplyByVector [] _ = [0]
-multiplyByVector _ [] = [0]
+multiplyByVector [] _ = []
+multiplyByVector _ [] = []
 multiplyByVector (m:ms) v = (dotProduct m v) : (multiplyByVector ms v)
 
 gaussJordan :: (Matrix, Matrix) -> Int -> (Matrix, Matrix)
 gaussJordan ([], _) _ = ([], [])
 gaussJordan (_, []) _ = ([], [])
-gaussJordan (m1, m2) n = (m1Step3, m2Step3)
-    where   (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step1)
+gaussJordan (m1, m2) n = (m1Step3, m2Step5)
+    where   m2Step5 = xorMatrixRowsWithVectorsWithSecondLastOne (last (init m2Step4)) (init (init m2Step4)) ++ [last (init m2Step4)] ++ [last m2Step4]
+            m2Step4 = xorMatrixRowsWithVectorsWithLastOne (last m2Step3) (init m2Step3) ++ [last m2Step3]
+            (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step1)
             m1Step2 = addZeroesToMatrix m1Step1 n
             (m1Step1, m2Step1) = rowEchelon (m1, m2)
 
@@ -184,14 +186,14 @@ reducedRowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
 reducedRowEchelon ([], _) = ([], [])
 reducedRowEchelon (_, []) = ([], [])
 reducedRowEchelon (m1, m2) = if numAllZeroRowsEqualsNumColumns m1 == True || matrixIsEmpty m1 then (m1, m2) else (addColumnToLeftOfMatrix m1Column1 m1Part3, m2Part3)
-    where   (m1Part3, m2Part3) = reducedRowEchelon (m1LessColumn1, m2Rejoin) -- pass all of m2 (DONE)
+    where   (m1Part3, m2Part3) = reducedRowEchelon (m1LessColumn1, m2Rejoin)
             m1Column1 = getFirstColumn m1Part2
-            m1LessColumn1 = removeFirstColumn m1Rejoin -- remove only from m1 (DONE)
-            m1Rejoin = m1Part2 ++ m1Part1Bottom -- fine
-            m2Rejoin = m2Part2 ++ m2Part1Bottom -- fine
+            m1LessColumn1 = removeFirstColumn m1Rejoin
+            m1Rejoin = m1Part2 ++ m1Part1Bottom
+            m2Rejoin = m2Part2 ++ m2Part1Bottom
             (m1Part2, m2Part2) = xorWithLastRow (m1Part1Top, m2Part1Top)
-            (m1Part1Top, m2Part1Top) = getRowUpToLastLeadingOne (m1, m2) -- Returns based on m1 so fine
-            (m1Part1Bottom, m2Part1Bottom) = getRowAfterLastLeadingOne (m1, m2) -- Returns based on m1 so fine
+            (m1Part1Top, m2Part1Top) = getRowUpToLastLeadingOne (m1, m2)
+            (m1Part1Bottom, m2Part1Bottom) = getRowAfterLastLeadingOne (m1, m2)
 
 getRowAfterLastLeadingOne :: (Matrix, Matrix) -> (Matrix, Matrix)
 getRowAfterLastLeadingOne ([], _) = ([], [])
@@ -255,6 +257,24 @@ xorMatrixRowsWithVectorsWithHeadOne (v1, v2) (m1, m2) = ([m1Head] ++ m1Tail, [m2
 
 xorWithVectorsWithHeadOne :: (Vector, Vector)-> (Vector, Vector) -> (Vector, Vector)
 xorWithVectorsWithHeadOne (v1, v2) (v3, v4) = if head v3 == 1 then (xorVectors v1 v3, xorVectors v2 v4) else (v3, v4)
+
+xorMatrixRowsWithVectorsWithLastOne :: Vector -> Matrix -> Matrix
+xorMatrixRowsWithVectorsWithLastOne _ [] = []
+xorMatrixRowsWithVectorsWithLastOne v m =  mInit ++ [mLast]
+    where   mLast = xorWithVectorWithLastOne v (last m)
+            mInit = xorMatrixRowsWithVectorsWithLastOne v (init m)
+
+xorWithVectorWithLastOne :: Vector -> Vector-> Vector
+xorWithVectorWithLastOne v1 v2 = if last v2 == 1 then xorVectors v1 v2 else v2
+
+xorMatrixRowsWithVectorsWithSecondLastOne :: Vector -> Matrix -> Matrix
+xorMatrixRowsWithVectorsWithSecondLastOne _ [] = []
+xorMatrixRowsWithVectorsWithSecondLastOne v m =  mInit ++ [mLast]
+    where   mLast = xorWithVectorWithSecondLastOne v (last m)
+            mInit = xorMatrixRowsWithVectorsWithSecondLastOne v (init m)
+
+xorWithVectorWithSecondLastOne :: Vector -> Vector-> Vector
+xorWithVectorWithSecondLastOne v1 v2 = if last (init v2) == 1 then xorVectors v1 v2 else v2
 
 xorVectors :: Vector -> Vector -> Vector
 xorVectors v1 v2 = zipWith xor v1 v2
