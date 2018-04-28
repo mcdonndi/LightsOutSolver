@@ -13,18 +13,6 @@ solvableInput = [1,0,0,0,0, 1,0,1,0,1, 1,0,0,0,1, 1,0,1,0,1, 0,0,0,0,1]
 testMatrix :: Matrix
 testMatrix = [[0,1,0,1,0],[1,0,1,1,1],[0,1,1,1,0],[0,1,0,0,0],[0,0,0,1,1]]
 
-quietPattern1 :: Vector
-quietPattern1 = [0,1,1,1,0, 1,0,1,0,1, 1,1,0,1,1, 1,0,1,0,1, 0,1,1,1,0]
-
-quietPattern2 :: Vector
-quietPattern2 = [1,0,1,0,1, 1,0,1,0,1, 0,0,0,0,0, 1,0,1,0,1, 1,0,1,0,1]
-
-quietPattern3 :: Vector
-quietPattern3 = [1,1,0,1,1, 0,0,0,0,0, 1,1,0,1,1, 0,0,0,0,0, 1,1,0,1,1]
-
-row4 :: Vector
-row4 = [1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1]
-
 lightsOutMatrix :: Matrix
 lightsOutMatrix =  [[1,1,0,0,0, 1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0],
                     [1,1,1,0,0, 0,1,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0],
@@ -89,7 +77,6 @@ vectorToMatrix v = [take n v] ++ vectorToMatrix (drop n v)
     where   n = floor . sqrt . fromIntegral $ l
             l = length v
 
---Tested and works
 matrixToVector :: Matrix -> Vector
 matrixToVector [] = []
 matrixToVector (m:ms) = m ++ matrixToVector ms
@@ -102,8 +89,13 @@ solve v = if solvable v == False
 
 solvable :: Vector -> Bool
 solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
-    where   dot1 = dotProduct initialConfig quietPattern1
-            dot2 = dotProduct initialConfig quietPattern2
+    where   dot1 = dotProduct initialConfig qp1
+            dot2 = dotProduct initialConfig qp2
+            (qp1, qp2) = getQuietPatterns
+
+getQuietPatterns :: (Vector, Vector)
+getQuietPatterns = (last (init aInverse), last aInverse)
+    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identityMatrix25) 25
 
 dotProduct ::  Vector -> Vector -> Int
 dotProduct [] _ = 0
@@ -111,7 +103,9 @@ dotProduct _ [] = 0
 dotProduct (x:xs) (y:ys) = (x*y) `xor` (dotProduct xs ys)
 
 createSolutionsList :: Vector -> [Vector]
-createSolutionsList v = [v, (v `xorVectors` quietPattern1), (v `xorVectors` quietPattern2), (v `xorVectors` quietPattern3)]
+createSolutionsList v = [v, (v `xorVectors` qp1), (v `xorVectors` qp2), (v `xorVectors` qp3)]
+    where   (qp1, qp2) = getQuietPatterns
+            qp3 = qp1 `xorVectors` qp2
 
 solutionsAndMoveCount :: [Vector] -> [(Vector, Int)]
 solutionsAndMoveCount [] = []
