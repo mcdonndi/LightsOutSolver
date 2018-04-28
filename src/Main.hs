@@ -83,31 +83,6 @@ identityMatrix25 =  [[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]]
 
-reducedAInverse :: Matrix
-reducedAInverse =   [[0,1,1,1,0,0,0,1,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0],
-                    [1,1,0,1,1,0,1,0,0,0,0,0,1,1,1,0,0,0,1,0,0,0,0],
-                    [1,0,1,1,1,1,0,1,1,0,0,0,1,1,0,1,1,1,1,1,0,1,0],
-                    [1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1],
-                    [0,1,1,0,1,1,0,0,0,0,1,0,1,0,1,0,0,1,0,1,1,1,0],
-                    [0,0,1,0,1,0,1,1,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
-                    [0,1,0,1,0,1,1,0,1,1,0,0,0,1,0,1,1,1,0,0,0,1,0],
-                    [1,0,1,0,0,1,0,1,1,0,0,0,0,0,1,1,0,1,0,1,1,0,1],
-                    [0,0,1,0,0,0,1,1,1,0,1,0,0,1,1,1,0,0,1,0,0,1,1],
-                    [1,0,0,0,0,1,1,0,0,0,1,0,1,0,1,0,1,1,0,1,0,0,1],
-                    [0,0,0,0,1,0,0,0,1,1,0,0,1,0,1,1,1,1,1,0,0,1,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1],
-                    [0,1,1,0,1,1,0,0,0,1,1,0,1,1,0,0,0,1,0,0,1,1,0],
-                    [1,1,1,0,0,0,1,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0],
-                    [1,1,0,0,1,0,0,1,1,1,1,0,0,1,1,1,1,0,1,0,1,0,0],
-                    [0,0,1,0,0,0,1,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0,1],
-                    [0,0,1,1,0,0,1,0,0,1,1,1,0,0,1,0,1,1,1,0,0,0,1],
-                    [0,0,1,0,1,0,1,1,0,1,1,0,1,0,0,1,1,0,1,1,1,0,0],
-                    [0,1,1,0,0,1,0,0,1,0,1,0,0,1,1,0,1,1,1,0,0,0,1],
-                    [1,0,1,0,1,1,0,1,0,1,0,0,0,0,0,1,0,1,0,1,1,0,1],
-                    [0,0,0,1,1,0,0,1,0,0,0,1,1,0,1,1,0,1,0,1,1,1,0],
-                    [0,0,1,1,1,0,1,0,1,0,1,1,1,0,0,0,0,0,0,0,1,1,1],
-                    [0,0,0,1,0,0,0,1,1,1,0,1,0,0,0,1,1,0,1,1,0,1,0]]
-
 vectorToMatrix :: Vector -> Matrix
 vectorToMatrix [] = []
 vectorToMatrix v = [take n v] ++ vectorToMatrix (drop n v)
@@ -122,7 +97,8 @@ matrixToVector (m:ms) = m ++ matrixToVector ms
 solve :: Vector -> Maybe Vector
 solve v = if solvable v == False
     then Nothing
-    else Just (getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector reducedAInverse (reduceVectorTo23 v))
+    else Just (getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector (reduceMatrixTo23 aInverse) (reduceVectorTo23 v))
+    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identityMatrix25) 25
 
 solvable :: Vector -> Bool
 solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
@@ -146,6 +122,10 @@ getLeastMovesSolution list =  fst $ head $ sortBy (compare `on` snd) list
 
 reduceVectorTo23 :: Vector -> Vector
 reduceVectorTo23 v = take 23 v
+
+reduceMatrixTo23 :: Matrix -> Matrix
+reduceMatrixTo23 m = map reduceVectorTo23 newM
+    where newM = take 23 m
 
 appendTwoZeroes :: Vector -> Vector
 appendTwoZeroes v = v ++ [0,0]
@@ -236,13 +216,13 @@ xorWithFirstRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithFirstRow ([], _) = ([], [])
 xorWithFirstRow (_, []) = ([], [])
 xorWithFirstRow (m:ms, n:ns) = ([m] ++ newMs, [n] ++ newNs)
-    where (newMs, newNs) = xorMatrixRowsWithVectorsWithHeadOne (m, n) (ms, ns) -- map woks on lists not tuples
+    where (newMs, newNs) = xorMatrixRowsWithVectorsWithHeadOne (m, n) (ms, ns)
 
 xorWithLastRow :: (Matrix, Matrix) -> (Matrix, Matrix)
 xorWithLastRow ([], _) = ([], [])
 xorWithLastRow (_, []) = ([], [])
 xorWithLastRow (m1, m2) = (newM1 ++ [last m1], newM2 ++ [last m2])
-    where (newM1, newM2) = xorMatrixRowsWithVectorsWithHeadOne (last m1, last m2) (init m1, init m2) -- map woks on lists not tuples
+    where (newM1, newM2) = xorMatrixRowsWithVectorsWithHeadOne (last m1, last m2) (init m1, init m2)
 
 removeFirstColumn :: Matrix-> Matrix
 removeFirstColumn [] = []
