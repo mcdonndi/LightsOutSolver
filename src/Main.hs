@@ -53,9 +53,12 @@ identity n = m
 
 vectorToMatrix :: Vector -> Matrix
 vectorToMatrix [] = []
-vectorToMatrix v = [take n v] ++ vectorToMatrix (drop n v)
+vectorToMatrix v = [m ++ takeLastN (take (i*n) v) | i <- is]--[take n v] ++ vectorToMatrix (drop n v)
     where   n = floor . sqrt . fromIntegral $ l
+            is = [1..n]
             l = length v
+            m = []
+            takeLastN = reverse . take n . reverse
 
 matrixToVector :: Matrix -> Vector
 matrixToVector [] = []
@@ -65,7 +68,7 @@ solve :: Vector -> Maybe Vector
 solve v = if solvable v == False
     then Nothing
     else Just (getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector (reduceMatrixTo23 aInverse) (reduceVectorTo23 v))
-    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25) 25
+    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
 
 solvable :: Vector -> Bool
 solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
@@ -75,7 +78,7 @@ solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
 
 getQuietPatterns :: (Vector, Vector)
 getQuietPatterns = (last (init aInverse), last aInverse)
-    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identityMatrix25) 25
+    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
 
 dotProduct ::  Vector -> Vector -> Int
 dotProduct [] _ = 0
@@ -119,14 +122,14 @@ multiplyByVector [] _ = []
 multiplyByVector _ [] = []
 multiplyByVector (m:ms) v = (dotProduct m v) : (multiplyByVector ms v)
 
-gaussJordan :: (Matrix, Matrix) -> Int -> (Matrix, Matrix)
-gaussJordan ([], _) _ = ([], [])
-gaussJordan (_, []) _ = ([], [])
-gaussJordan (m1, m2) n = (m1Step3, m2Step5)
+gaussJordan :: (Matrix, Matrix) -> (Matrix, Matrix)
+gaussJordan ([], _) = ([], [])
+gaussJordan (_, []) = ([], [])
+gaussJordan (m1, m2) = (m1Step3, m2Step5)
     where   m2Step5 = xorMatrixRowsWithVectorsWithSecondLastOne (last (init m2Step4)) (init (init m2Step4)) ++ [last (init m2Step4)] ++ [last m2Step4]
             m2Step4 = xorMatrixRowsWithVectorsWithLastOne (last m2Step3) (init m2Step3) ++ [last m2Step3]
             (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step1)
-            m1Step2 = addZeroesToMatrix m1Step1 n
+            m1Step2 = addZeroesToMatrix m1Step1 (length m1)
             (m1Step1, m2Step1) = rowEchelon (m1, m2)
 
 rowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
