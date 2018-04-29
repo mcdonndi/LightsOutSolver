@@ -7,8 +7,8 @@ type Vector = [Int]
 type Row = [Int]
 type Matrix = [Row]
 
-solvableInput :: Vector
-solvableInput = [1,0,0,0,0, 1,0,1,0,1, 1,0,0,0,1, 1,0,1,0,1, 0,0,0,0,1]
+solvableInput :: Matrix
+solvableInput = [[1,0,0,0,0],[1,0,1,0,1],[1,0,0,0,1],[1,0,1,0,1],[0,0,0,0,1]]
 
 testMatrix :: Matrix
 testMatrix = [[0,1,0,1,0],[1,0,1,1,1],[0,1,1,1,0],[0,1,0,0,0],[0,0,0,1,1]]
@@ -45,15 +45,14 @@ lightsOutMatrix =  [[1,1,0,0,0, 1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0],
                     [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,1, 0,0,0,1,1]]
 
 identity :: Int -> Matrix
-identity n = m
-    where   m = [newline j | j <- js]
-            newline j = [if i == j then 1 else 0 | i <- is]
+identity n = [newline j | j <- js]
+    where   newline j = [if i == j then 1 else 0 | i <- is]
             is = [1..n]
             js = [1..n]
 
 vectorToMatrix :: Vector -> Matrix
 vectorToMatrix [] = []
-vectorToMatrix v = [m ++ takeLastN (take (i*n) v) | i <- is]--[take n v] ++ vectorToMatrix (drop n v)
+vectorToMatrix v = [m ++ takeLastN (take (i*n) v) | i <- is]
     where   n = floor . sqrt . fromIntegral $ l
             is = [1..n]
             l = length v
@@ -64,11 +63,12 @@ matrixToVector :: Matrix -> Vector
 matrixToVector [] = []
 matrixToVector (m:ms) = m ++ matrixToVector ms
 
-solve :: Vector -> Maybe Vector
-solve v = if solvable v == False
+solve :: Matrix -> Maybe Matrix
+solve m = if solvable v == False
     then Nothing
-    else Just (getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector (reduceMatrixTo23 aInverse) (reduceVectorTo23 v))
-    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
+    else Just (vectorToMatrix $ getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector (reduceMatrixTo23 aInverse) (reduceVectorTo23 v))
+    where   (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
+            v = matrixToVector m
 
 solvable :: Vector -> Bool
 solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
