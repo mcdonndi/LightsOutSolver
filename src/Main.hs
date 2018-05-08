@@ -67,7 +67,7 @@ solve :: Matrix -> Maybe Matrix
 solve m = if solvable v == False
     then Nothing
     else Just (vectorToMatrix $ getLeastMovesSolution $ solutionsAndMoveCount $ createSolutionsList $ appendTwoZeroes $ multiplyByVector (reduceMatrixTo23 aInverse) (reduceVectorTo23 v))
-    where   (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
+    where   (pseudoIdentity, aInverse) = invertMatrix (lightsOutMatrix, identity 25)
             v = matrixToVector m
 
 solvable :: Vector -> Bool
@@ -78,7 +78,7 @@ solvable initialConfig = if dot1 == 0 && dot2 == 0 then True else False
 
 getQuietPatterns :: (Vector, Vector)
 getQuietPatterns = (last (init aInverse), last aInverse)
-    where (pseudoIdentity, aInverse) = gaussJordan (lightsOutMatrix, identity 25)
+    where (pseudoIdentity, aInverse) = invertMatrix (lightsOutMatrix, identity 25)
 
 dotProduct ::  Vector -> Vector -> Int
 dotProduct [] _ = 0
@@ -122,10 +122,10 @@ multiplyByVector [] _ = []
 multiplyByVector _ [] = []
 multiplyByVector (m:ms) v = (dotProduct m v) : (multiplyByVector ms v)
 
-gaussJordan :: (Matrix, Matrix) -> (Matrix, Matrix)
-gaussJordan ([], _) = ([], [])
-gaussJordan (_, []) = ([], [])
-gaussJordan (m1, m2) = (m1Step3, m2Step5)
+invertMatrix :: (Matrix, Matrix) -> (Matrix, Matrix)
+invertMatrix ([], _) = ([], [])
+invertMatrix (_, []) = ([], [])
+invertMatrix (m1, m2) = (m1Step3, m2Step5)
     where   m2Step5 = xorMatrixRowsWithVectorsWithSecondLastOne (last (init m2Step4)) (init (init m2Step4)) ++ [last (init m2Step4)] ++ [last m2Step4]
             m2Step4 = xorMatrixRowsWithVectorsWithLastOne (last m2Step3) (init m2Step3) ++ [last m2Step3]
             (m1Step3, m2Step3) = reducedRowEchelon (m1Step2, m2Step1)
@@ -142,7 +142,7 @@ rowEchelon (m1, m2) = ([head newM1] ++ newM1Tail, [head newM2] ++ newM2Tail)
 reducedRowEchelon :: (Matrix, Matrix) -> (Matrix, Matrix)
 reducedRowEchelon ([], _) = ([], [])
 reducedRowEchelon (_, []) = ([], [])
-reducedRowEchelon (m1, m2) = if numAllZeroRowsEqualsNumColumns m1 == True || matrixIsEmpty m1 then (m1, m2) else (addColumnToLeftOfMatrix m1Column1 m1Part3, m2Part3)
+reducedRowEchelon (m1, m2) = if numAllZeroRowsEqualsNumColumns m1 == True || matrixIsEmpty m1 then (m1, m2) else (addColumnToMatrixLeft m1Column1 m1Part3, m2Part3)
     where   (m1Part3, m2Part3) = reducedRowEchelon (m1LessColumn1, m2Rejoin)
             m1Column1 = getFirstColumn m1Part2
             m1LessColumn1 = removeFirstColumn m1Rejoin
@@ -167,10 +167,10 @@ getFirstColumn :: Matrix -> Matrix
 getFirstColumn [] = []
 getFirstColumn (m:ms) = [[head m]] ++ getFirstColumn ms
 
-addColumnToLeftOfMatrix :: Matrix -> Matrix -> Matrix
-addColumnToLeftOfMatrix col [] = col
-addColumnToLeftOfMatrix [] (m:ms) = [[0] ++ m] ++ addColumnToLeftOfMatrix [] ms
-addColumnToLeftOfMatrix (col:cols) (m:ms) = [col ++ m] ++ addColumnToLeftOfMatrix cols ms
+addColumnToMatrixLeft :: Matrix -> Matrix -> Matrix
+addColumnToMatrixLeft col [] = col
+addColumnToMatrixLeft [] (m:ms) = [[0] ++ m] ++ addColumnToMatrixLeft [] ms
+addColumnToMatrixLeft (col:cols) (m:ms) = [col ++ m] ++ addColumnToMatrixLeft cols ms
 
 addZeroesToMatrix :: Matrix -> Int -> Matrix
 addZeroesToMatrix [] _ = []
